@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vinyl Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --wood-dark: #2c1a0e;
+    --wood-mid: #5c3317;
+    --wood-light: #8b5a2b;
+    --wood-grain: #3d2010;
+    --chrome: #c8c8c8;
+    --chrome-bright: #f0f0f0;
+    --vinyl-dark: #111;
+    --vinyl-mid: #1a1a1a;
+    --vinyl-groove: #0d0d0d;
+    --needle: #e0c060;
+    --red-label: #c0392b;
+    --cream: #f5f0e8;
+    --amber: #d4a843;
+  }
+
+  body {
+    background: #1a1009;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Space Mono', monospace;
+    overflow-x: hidden;
+    padding: 20px;
+  }
+
+  /* Grain overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.08'/%3E%3C/svg%3E");
+    pointer-events: none;
+    opacity: 0.4;
+    z-index: 999;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    color: var(--amber);
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    text-shadow: 0 0 30px rgba(212,168,67,0.3);
+  }
+
+  /* ── PLAYER CABINET ── */
+  .cabinet {
+    position: relative;
+    width: min(600px, 96vw);
+    background:
+      repeating-linear-gradient(
+        92deg,
+        transparent 0px, transparent 3px,
+        rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px
+      ),
+      repeating-linear-gradient(
+        180deg,
+        transparent 0px, transparent 8px,
+        rgba(255,255,255,0.015) 8px, rgba(255,255,255,0.015) 9px
+      ),
+      linear-gradient(170deg, var(--wood-mid) 0%, var(--wood-dark) 40%, var(--wood-grain) 70%, var(--wood-mid) 100%);
+    border-radius: 16px 16px 12px 12px;
+    padding: 32px 32px 28px;
+    box-shadow:
+      0 0 0 2px var(--wood-light),
+      0 0 0 4px var(--wood-dark),
+      0 20px 60px rgba(0,0,0,0.8),
+      inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+
+  .cabinet::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--wood-mid), var(--wood-light), var(--wood-mid), var(--wood-light), var(--wood-mid));
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* ── PLATTER AREA ── */
+  .platter-section {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .platter-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  /* Platter base */
+  .platter-base {
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #333 0%, #222 40%, #1a1a1a 70%, #111 100%);
+    box-shadow:
+      0 0 0 3px #444,
+      0 0 0 5px #2a2a2a,
+      0 8px 32px rgba(0,0,0,0.9),
+      inset 0 2px 4px rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .platter-base:active { cursor: grabbing; }
+
+  /* Vinyl disc */
+  .vinyl {
+    width: 260px;
+    height: 260px;
+    border-radius: 50%;
+    position: relative;
+    background: var(--vinyl-dark);
+    overflow: hidden;
+    transition: transform 0.05s linear;
+  }
+
+  /* Grooves via conic/radial gradients */
+  .vinyl::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+      repeating-radial-gradient(
+        circle at 50% 50%,
+        transparent 0px,
+        transparent 2px,
+        rgba(255,255,255,0.03) 2px,
+        rgba(255,255,255,0.03) 2.5px,
+        transparent 2.5px,
+        transparent 5px
+      );
+  }
+
+  /* Sheen */
+  .vinyl::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(255,255,255,0.06) 20deg,
+      transparent 40deg,
+      rgba(255,255,255,0.03) 80deg,
+      transparent 100deg,
+      rgba(255,255,255,0.07) 160deg,
+      transparent 200deg,
+      rgba(255,255,255,0.04) 260deg,
+      transparent 300deg,
+      rgba(255,255,255,0.06) 340deg,
+      transparent 360deg
+    );
+    pointer-events: none;
+  }
+
+  /* Label */
+  .label {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, #e74c3c, var(--red-label) 50%, #922b21);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.5);
+    z-index: 2;
+    overflow: hidden;
+    cursor: grab;
+  }
+
+  .label::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 4px,
+      rgba(0,0,0,0.06) 4px, rgba(0,0,0,0.06) 5px
+    );
+  }
+
+  .label-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 7px;
+    color: rgba(255,255,255,0.9);
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.3;
+    padding: 0 6px;
+    position: relative;
+    z-index: 1;
+    max-width: 80px;
+    word-break: break-word;
+  }
+
+  .label-hole {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #111;
+    box-shadow: 0 0 0 1px #333;
+    z-index: 3;
+  }
+
+  /* ── TONEARM ── */
+  /* Tonearm pivot sits at top-right of the platter */
+  .tonearm-wrap {
+    position: absolute;
+    top: 10px;
+    right: -18px;
+    width: 160px;
+    height: 160px;
+    pointer-events: none;
+    z-index: 10;
+    /* pivot = centre of the base circle (top-right corner) */
+    transform-origin: 148px 14px;
+    /* resting position: arm parked to the right, away from vinyl */
+    transform: rotate(28deg);
+    transition: transform 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* playing: rotate counter-clockwise so needle touches the record */
+  .tonearm-wrap.playing {
+    transform: rotate(0deg);
+  }
+
+  .tonearm-base {
+    position: absolute;
+    top: 0; right: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 35%, var(--chrome-bright), var(--chrome));
+    box-shadow: 0 2px 8px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.4);
+    z-index: 2;
+  }
+
+  /* The arm itself: stretches from pivot leftward toward the vinyl */
+  .tonearm-arm {
+    position: absolute;
+    top: 11px;       /* vertically centred on pivot */
+    right: 14px;     /* starts at pivot centre */
+    width: 148px;
+    height: 5px;
+    background: linear-gradient(180deg, var(--chrome-bright), var(--chrome), #aaa);
+    border-radius: 3px 0 0 3px;
+    transform-origin: right center;
+    /* slight downward angle like a real tonearm */
+    transform: rotate(8deg);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.6);
+  }
+
+  .tonearm-head {
+    position: absolute;
+    top: -5px;
+    left: 0px;
+    width: 14px;
+    height: 14px;
+    background: linear-gradient(180deg, #888, #555);
+    border-radius: 2px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  }
+
+  .tonearm-needle {
+    position: absolute;
+    top: 14px;
+    left: 3px;
+    width: 2px;
+    height: 12px;
+    background: linear-gradient(180deg, #999, var(--needle));
+    border-radius: 0 0 2px 2px;
+  }
+
+  /* ── CONTROLS SIDE ── */
+  .controls-side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-top: 8px;
+  }
+
+  .track-info {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .now-playing-label {
+    font-size: 9px;
+    color: var(--amber);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .track-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 14px;
+    color: var(--cream);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  /* Speed indicator */
+  .speed-display {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    margin-top: 6px;
+    letter-spacing: 0.1em;
+  }
+
+  .speed-display span {
+    color: var(--amber);
+    font-weight: 700;
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    flex: 1;
+    min-width: 44px;
+    padding: 10px 8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(0,0,0,0.2));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    color: var(--cream);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+
+  .btn:hover {
+    background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(0,0,0,0.15));
+    border-color: var(--amber);
+    color: var(--amber);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.5), inset 0 1px 3px rgba(0,0,0,0.3);
+  }
+
+  .btn.active {
+    background: linear-gradient(180deg, rgba(212,168,67,0.2), rgba(212,168,67,0.05));
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  /* Speed knob section */
+  .knob-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .knob-label {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .knob-wrap {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+
+  .knob {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 40% 30%, #555, #222);
+    border: 2px solid #444;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.1);
+    cursor: pointer;
+    position: relative;
+    transition: none;
+  }
+
+  .knob::after {
+    content: '';
+    position: absolute;
+    top: 5px; left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 10px;
+    background: var(--amber);
+    border-radius: 2px;
+  }
+
+  /* ── URL INPUT ── */
+  .input-section {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .url-input {
+    flex: 1;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    color: var(--cream);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .url-input:focus { border-color: var(--amber); }
+  .url-input::placeholder { color: rgba(255,255,255,0.2); }
+
+  .add-btn {
+    padding: 10px 14px;
+    background: linear-gradient(180deg, rgba(212,168,67,0.3), rgba(212,168,67,0.1));
+    border: 1px solid var(--amber);
+    border-radius: 6px;
+    color: var(--amber);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .add-btn:hover {
+    background: linear-gradient(180deg, rgba(212,168,67,0.4), rgba(212,168,67,0.2));
+    box-shadow: 0 0 12px rgba(212,168,67,0.2);
+  }
+
+  /* ── PLAYLIST ── */
+  .playlist-section {
+    margin-top: 20px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .playlist-header {
+    padding: 12px 16px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--amber);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .playlist-list {
+    max-height: 160px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(212,168,67,0.3) transparent;
+  }
+
+  .playlist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+    border-bottom: 1px solid rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.6);
+    font-size: 10px;
+  }
+
+  .playlist-item:hover { background: rgba(255,255,255,0.04); color: var(--cream); }
+  .playlist-item.active { background: rgba(212,168,67,0.08); color: var(--amber); }
+
+  .playlist-num {
+    width: 20px;
+    text-align: right;
+    opacity: 0.4;
+    flex-shrink: 0;
+  }
+
+  .playlist-item.active .playlist-num { opacity: 1; }
+
+  .playlist-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .playlist-remove {
+    opacity: 0;
+    background: none;
+    border: none;
+    color: rgba(255,100,100,0.6);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
+  }
+
+  .playlist-item:hover .playlist-remove { opacity: 1; }
+
+  /* ── SCRATCH HINT ── */
+  .scratch-hint {
+    text-align: center;
+    font-size: 9px;
+    color: rgba(255,255,255,0.2);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .scratch-hint.active {
+    color: var(--amber);
+    text-shadow: 0 0 8px rgba(212,168,67,0.4);
+  }
+
+  /* ── VU METER ── */
+  .vu-wrap {
+    display: flex;
+    gap: 3px;
+    align-items: flex-end;
+    height: 20px;
+    margin-top: 8px;
+  }
+
+  .vu-bar {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border-radius: 2px;
+    transition: height 0.08s;
+    min-height: 2px;
+  }
+
+  /* YouTube player - must be visible for audio to work */
+  #yt-player-wrap {
+    margin-top: 14px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: #000;
+  }
+  #yt-player { display: block; width: 100%; height: 120px; }
+
+  /* Vinyl scratch visual flash */
+  @keyframes scratchFlash {
+    0% { opacity: 0.4; }
+    50% { opacity: 0.9; }
+    100% { opacity: 0.4; }
+  }
+
+  .vinyl.scratching::after {
+    animation: scratchFlash 0.05s infinite;
+  }
+
+  /* Rotation */
+  @keyframes spin {
+    from { transform: rotate(var(--start-angle, 0deg)); }
+    to   { transform: rotate(calc(var(--start-angle, 0deg) + 360deg)); }
+  }
+
+  .vinyl.spinning {
+    animation: spin linear infinite;
+    animation-duration: var(--spin-duration, 1.8s);
+  }
+</style>
+</head>
+<body>
+
+<h1>Vinyl Player</h1>
+
+<div class="cabinet">
+  <div class="platter-section">
+    <!-- Vinyl platter -->
+    <div class="platter-wrap" id="platterWrap">
+      <div class="platter-base">
+        <div class="vinyl" id="vinyl">
+          <div class="label" id="label">
+            <div class="label-title" id="labelTitle">—</div>
+            <div class="label-hole"></div>
+          </div>
+        </div>
+      </div>
+      <!-- Tonearm -->
+      <div class="tonearm-wrap" id="tonearm">
+        <div class="tonearm-arm">
+          <div class="tonearm-head">
+            <div class="tonearm-needle"></div>
+          </div>
+        </div>
+        <div class="tonearm-base"></div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-side">
+      <div class="track-info">
+        <div class="now-playing-label">▶ Now Playing</div>
+        <div class="track-name" id="trackName">No track loaded</div>
+        <div class="speed-display">RPM: <span id="rpmDisplay">33⅓</span></div>
+        <div class="vu-wrap" id="vuWrap"></div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" id="btnPrev" title="Prev">⏮</button>
+        <button class="btn" id="btnPlay" title="Play/Pause">▶</button>
+        <button class="btn" id="btnNext" title="Next">⏭</button>
+      </div>
+
+      <div class="knob-section">
+        <div class="knob-label">Speed</div>
+        <div class="knob-wrap">
+          <div class="knob" id="speedKnob"></div>
+        </div>
+        <div style="font-size:9px; color:rgba(255,255,255,0.3); line-height:1.5;">
+          Drag knob<br>to adjust
+        </div>
+      </div>
+
+      <div class="input-section">
+        <input class="url-input" id="urlInput" placeholder="YouTube URL…" />
+        <button class="add-btn" id="addBtn">ADD</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="scratch-hint" id="scratchHint">⟳ GRAB THE VINYL TO SCRATCH</div>
+
+  <div class="playlist-section">
+    <div class="playlist-header">Playlist</div>
+    <div class="playlist-list" id="playlistList"></div>
+  </div>
+
+  <div id="yt-player-wrap">
+    <div id="yt-player"></div>
+  </div>
+</div>
+
+
+
+<script>
+// ── STATE ──
+const state = {
+  tracks: [],
+  currentIndex: -1,
+  isPlaying: false,
+  spinDuration: 1.8,    // seconds per revolution
+  rotationAngle: 0,
+  lastTimestamp: null,
+  animFrame: null,
+  player: null,
+  playerReady: false,
+  scratching: false,
+  scratchStartAngle: 0,
+  scratchStartRotation: 0,
+  scratchLastAngle: 0,
+  scratchVelocity: 0,
+  knobDragging: false,
+  knobStartY: 0,
+  knobStartDuration: 1.8,
+  knobAngle: 0,
+};
+
+// ── VU BARS ──
+const vuWrap = document.getElementById('vuWrap');
+for (let i = 0; i < 12; i++) {
+  const b = document.createElement('div');
+  b.className = 'vu-bar';
+  vuWrap.appendChild(b);
+}
+const vuBars = vuWrap.querySelectorAll('.vu-bar');
+
+let vuInterval = null;
+function startVU() {
+  if (vuInterval) return;
+  vuInterval = setInterval(() => {
+    vuBars.forEach(b => {
+      const h = state.isPlaying ? (Math.random() * 14 + 4) : 2;
+      b.style.height = h + 'px';
+      const pct = h / 20;
+      const r = Math.floor(pct > 0.7 ? 220 : 180 * pct);
+      const g = Math.floor(180 * (1 - pct * 0.4));
+      b.style.background = `rgb(${r},${g},40)`;
+    });
+  }, 80);
+}
+function stopVU() {
+  clearInterval(vuInterval);
+  vuInterval = null;
+  vuBars.forEach(b => { b.style.height = '2px'; b.style.background = 'rgba(255,255,255,0.05)'; });
+}
+
+// ── ROTATION ANIMATION ──
+const vinyl = document.getElementById('vinyl');
+function rotateFrame(ts) {
+  if (!state.lastTimestamp) state.lastTimestamp = ts;
+  // Cap dt to 100ms max — prevents big jump when tab regains focus
+  const dt = Math.min((ts - state.lastTimestamp) / 1000, 0.1);
+  state.lastTimestamp = ts;
+  if (state.isPlaying && !state.scratching) {
+    const degsPerSec = 360 / state.spinDuration;
+    state.rotationAngle = (state.rotationAngle + degsPerSec * dt) % 360;
+  }
+  vinyl.style.transform = `rotate(${state.rotationAngle}deg)`;
+  state.animFrame = requestAnimationFrame(rotateFrame);
+}
+// Reset timestamp when tab becomes visible again
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) state.lastTimestamp = null;
+});
+state.animFrame = requestAnimationFrame(rotateFrame);
+
+// ── WEB AUDIO — SCRATCH SOUND ──
+let audioCtx = null;
+let scratchNode = null;
+let scratchGain = null;
+
+function initAudio() {
+  if (audioCtx) return;
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  scratchGain = audioCtx.createGain();
+  scratchGain.gain.value = 0;
+  scratchGain.connect(audioCtx.destination);
+}
+
+function startScratchSound() {
+  initAudio();
+  if (scratchNode) { scratchNode.stop(); scratchNode = null; }
+  // White noise buffer
+  const bufSize = audioCtx.sampleRate * 0.5;
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = (Math.random() * 2 - 1);
+  scratchNode = audioCtx.createBufferSource();
+  scratchNode.buffer = buf;
+  scratchNode.loop = true;
+  // Low-pass filter for vinyl scratch tone
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 800;
+  filter.Q.value = 0.8;
+  scratchNode.connect(filter);
+  filter.connect(scratchGain);
+  scratchNode.start();
+  scratchGain.gain.setTargetAtTime(0.35, audioCtx.currentTime, 0.02);
+}
+
+function updateScratchSound(velocity) {
+  if (!scratchGain) return;
+  // Volume based on how fast you're scratching
+  const vol = Math.min(Math.abs(velocity) / 8, 0.5);
+  scratchGain.gain.setTargetAtTime(vol, audioCtx.currentTime, 0.01);
+}
+
+function stopScratchSound() {
+  if (!scratchGain) return;
+  scratchGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+  setTimeout(() => {
+    if (scratchNode) { try { scratchNode.stop(); } catch(e) {} scratchNode = null; }
+  }, 200);
+}
+const platterWrap = document.getElementById('platterWrap');
+const scratchHint = document.getElementById('scratchHint');
+
+function getAngleFromEvent(e, el) {
+  const rect = el.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const touch = e.touches ? e.touches[0] : e;
+  return Math.atan2(touch.clientY - cy, touch.clientX - cx) * 180 / Math.PI;
+}
+
+function onScratchStart(e) {
+  if (!state.isPlaying && state.currentIndex === -1) return;
+  e.preventDefault();
+  state.scratching = true;
+  state.scratchStartAngle = getAngleFromEvent(e, vinyl);
+  state.scratchStartRotation = state.rotationAngle;
+  state.scratchLastAngle = state.scratchStartAngle;
+  vinyl.classList.add('scratching');
+  scratchHint.classList.add('active');
+  scratchHint.textContent = '⟳ SCRATCHING…';
+  startScratchSound();
+  if (state.player && state.playerReady) {
+    try { state.player.pauseVideo(); } catch(err) {}
+  }
+  document.addEventListener('mousemove', onScratchMove);
+  document.addEventListener('mouseup', onScratchEnd);
+  document.addEventListener('touchmove', onScratchMove, { passive: false });
+  document.addEventListener('touchend', onScratchEnd);
+}
+
+function onScratchMove(e) {
+  if (!state.scratching) return;
+  e.preventDefault();
+  const angle = getAngleFromEvent(e, vinyl);
+  let delta = angle - state.scratchLastAngle;
+  if (delta > 180) delta -= 360;
+  if (delta < -180) delta += 360;
+  state.scratchVelocity = delta;
+  state.rotationAngle = (state.rotationAngle + delta * 1.5) % 360;
+  state.scratchLastAngle = angle;
+  vinyl.style.transform = `rotate(${state.rotationAngle}deg)`;
+  updateScratchSound(delta);
+}
+
+function onScratchEnd(e) {
+  if (!state.scratching) return;
+  state.scratching = false;
+  vinyl.classList.remove('scratching');
+  stopScratchSound();
+  scratchHint.classList.remove('active');
+  scratchHint.textContent = '⟳ GRAB THE VINYL TO SCRATCH';
+  document.removeEventListener('mousemove', onScratchMove);
+  document.removeEventListener('mouseup', onScratchEnd);
+  document.removeEventListener('touchmove', onScratchMove);
+  document.removeEventListener('touchend', onScratchEnd);
+  if (state.isPlaying && state.player && state.playerReady) {
+    try { state.player.playVideo(); } catch(err) {}
+  }
+}
+
+vinyl.addEventListener('mousedown', onScratchStart);
+vinyl.addEventListener('touchstart', onScratchStart, { passive: false });
+
+// ── SPEED KNOB ──
+const speedKnob = document.getElementById('speedKnob');
+const rpmDisplay = document.getElementById('rpmDisplay');
+
+function updateKnobVisual() {
+  speedKnob.style.transform = `rotate(${state.knobAngle}deg)`;
+}
+
+function speedToRPM(dur) {
+  const rpm = 60 / dur;
+  if (rpm < 38) return '33⅓';
+  if (rpm < 52) return '45';
+  return '78';
+}
+
+speedKnob.addEventListener('mousedown', e => {
+  state.knobDragging = true;
+  state.knobStartY = e.clientY;
+  state.knobStartDuration = state.spinDuration;
+  e.preventDefault();
+});
+document.addEventListener('mousemove', e => {
+  if (!state.knobDragging) return;
+  const dy = state.knobStartY - e.clientY;
+  state.knobAngle = Math.max(-135, Math.min(135, dy));
+  updateKnobVisual();
+  // Map -135..135 → playback rate 0.25x..2x
+  const t = (state.knobAngle + 135) / 270;
+  const rate = 0.25 + t * 1.75;
+  // Visual spin speed (normal = 1.8s, scale inversely)
+  state.spinDuration = 1.8 / rate;
+  // Map rate to RPM label
+  if (rate < 0.6) rpmDisplay.textContent = '33⅓';
+  else if (rate < 1.2) rpmDisplay.textContent = '45';
+  else rpmDisplay.textContent = '78';
+  // Apply to YouTube player
+  if (state.player && state.playerReady) {
+    try { state.player.setPlaybackRate(Math.round(rate * 4) / 4); } catch(e) {}
+  }
+});
+document.addEventListener('mouseup', () => { state.knobDragging = false; });
+
+// ── YOUTUBE API ──
+window.onYouTubeIframeAPIReady = function() {
+  state.player = new YT.Player('yt-player', {
+    height: '120',
+    width: '100%',
+    videoId: '',
+    playerVars: {
+      autoplay: 0,
+      controls: 1,
+      rel: 0,
+      enablejsapi: 1,
+      origin: window.location.origin,
+      playsinline: 1
+    },
+    events: {
+      onReady: () => {
+        state.playerReady = true;
+        renderPlaylist();
+        // If tracks loaded from localStorage — cue up first one
+        if (state.tracks.length > 0) {
+          state.player.cueVideoById(state.tracks[0].videoId);
+        }
+      },
+      onError: (e) => {
+        // If video unavailable in region — skip to next
+        if ([100, 101, 150].includes(e.data)) playNext();
+      },
+      onStateChange: e => {
+        if (e.data === YT.PlayerState.ENDED) playNext();
+        if (e.data === YT.PlayerState.PLAYING) {
+          state.isPlaying = true;
+          document.getElementById('btnPlay').textContent = '⏸';
+          document.getElementById('tonearm').classList.add('playing');
+          startVU();
+        }
+        if (e.data === YT.PlayerState.PAUSED) {
+          state.isPlaying = false;
+          document.getElementById('btnPlay').textContent = '▶';
+          document.getElementById('tonearm').classList.remove('playing');
+          stopVU();
+        }
+      }
+    }
+  });
+};
+
+function loadYTScript() {
+  if (window.YT) return;
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(s);
+}
+loadYTScript();
+
+// ── EXTRACT VIDEO ID ──
+function extractVideoId(url) {
+  const m = url.match(/(?:v=|youtu\.be\/|embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+// ── PLAYLIST ──
+function renderPlaylist() {
+  const list = document.getElementById('playlistList');
+  list.innerHTML = '';
+  state.tracks.forEach((t, i) => {
+    const item = document.createElement('div');
+    item.className = 'playlist-item' + (i === state.currentIndex ? ' active' : '');
+    item.innerHTML = `
+      <span class="playlist-num">${i === state.currentIndex ? '▶' : (i+1)}</span>
+      <span class="playlist-name">${t.title}</span>
+      <button class="playlist-remove" data-i="${i}">✕</button>
+    `;
+    item.addEventListener('click', ev => {
+      if (ev.target.classList.contains('playlist-remove')) {
+        const idx = parseInt(ev.target.dataset.i);
+        state.tracks.splice(idx, 1);
+        if (state.currentIndex >= idx) state.currentIndex--;
+        if (state.currentIndex < 0 && state.tracks.length > 0) state.currentIndex = 0;
+        if (state.tracks.length === 0) { stopPlayback(); }
+        saveUserTracks();
+        renderPlaylist();
+        return;
+      }
+      playTrack(i);
+    });
+    list.appendChild(item);
+  });
+}
+
+// ── PLAYBACK ──
+function playTrack(index) {
+  if (index < 0 || index >= state.tracks.length) return;
+  state.currentIndex = index;
+  const t = state.tracks[index];
+  document.getElementById('trackName').textContent = t.title;
+  document.getElementById('labelTitle').textContent = t.title;
+  renderPlaylist();
+  if (state.player && state.playerReady) {
+    state.player.loadVideoById({ videoId: t.videoId });
+  }
+}
+
+function togglePlay() {
+  if (!state.player || !state.playerReady) return;
+  if (state.currentIndex === -1 && state.tracks.length > 0) {
+    playTrack(0);
+    return;
+  }
+  if (state.isPlaying) {
+    state.player.pauseVideo();
+  } else {
+    state.player.playVideo();
+  }
+}
+
+function stopPlayback() {
+  state.isPlaying = false;
+  state.currentIndex = -1;
+  document.getElementById('btnPlay').textContent = '▶';
+  document.getElementById('trackName').textContent = 'No track loaded';
+  document.getElementById('labelTitle').textContent = '—';
+  document.getElementById('tonearm').classList.remove('playing');
+  stopVU();
+  if (state.player && state.playerReady) state.player.stopVideo();
+}
+
+function playNext() {
+  if (state.tracks.length === 0) return;
+  const next = (state.currentIndex + 1) % state.tracks.length;
+  playTrack(next);
+}
+
+function playPrev() {
+  if (state.tracks.length === 0) return;
+  const prev = (state.currentIndex - 1 + state.tracks.length) % state.tracks.length;
+  playTrack(prev);
+}
+
+// ── LOCALSTORAGE ──
+const LS_KEY = 'vinyl_user_tracks';
+
+function saveUserTracks() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state.tracks)); } catch(e) {}
+}
+
+function loadUserTracks() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return [];
+}
+
+// ── ADD TRACK ──
+document.getElementById('addBtn').addEventListener('click', () => {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url) return;
+  const vid = extractVideoId(url);
+  if (!vid) { alert('Invalid YouTube URL'); return; }
+  const title = `Track ${state.tracks.length + 1}`;
+  state.tracks.push({ videoId: vid, title });
+  document.getElementById('urlInput').value = '';
+  saveUserTracks();
+  renderPlaylist();
+  if (state.currentIndex === -1) playTrack(state.tracks.length - 1);
+  // Try to get real title
+  fetch(`https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${vid}&format=json`)
+    .then(r => r.json())
+    .then(d => {
+      const idx = state.tracks.findIndex(t => t.videoId === vid);
+      if (idx !== -1) state.tracks[idx].title = d.title;
+      if (state.currentIndex === idx) {
+        document.getElementById('trackName').textContent = d.title;
+        document.getElementById('labelTitle').textContent = d.title;
+      }
+      saveUserTracks();
+      renderPlaylist();
+    }).catch(() => {});
+});
+
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('addBtn').click();
+});
+
+document.getElementById('btnPlay').addEventListener('click', togglePlay);
+document.getElementById('btnPrev').addEventListener('click', playPrev);
+document.getElementById('btnNext').addEventListener('click', playNext);
+</script>
+
+<script>
+// Load user-saved tracks from localStorage
+const saved = loadUserTracks();
+saved.forEach(t => state.tracks.push(t));
+
+if (state.tracks.length > 0) {
+  state.currentIndex = 0;
+  document.getElementById('trackName').textContent = state.tracks[0].title;
+  document.getElementById('labelTitle').textContent = state.tracks[0].title;
+}
+renderPlaylist();
+</script>
+</body>
+</html>
